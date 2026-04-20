@@ -1,0 +1,39 @@
+{
+  "webhook_url": "YOUR_WEBHOOK_HERE",
+  "poll_interval_seconds": 120,
+  "services": [
+    {
+      "name": "Roblox",
+      "url": "https://api.status.io/1.0/status/59db90dbcdeb2f04dadcf16d",
+      "provider": "statusio"
+    },
+    {
+      "name": "Discord",
+      "url": "https://discordstatus.com",
+      "provider": "atlassian"
+    },
+    {
+      "name": "OpenAI / ChatGPT",
+      "url": "https://status.openai.com",
+      "provider": "atlassian",
+      "components": ["ChatGPT", "API"]
+    },
+    {
+      "name": "GitHub",
+      "url": "https://www.githubstatus.com",
+      "provider": "atlassian"
+    },
+    {
+      "name": "Claude",
+      "url": "https://status.anthropic.com",
+      "provider": "atlassian",
+      "components": ["claude.ai", "Claude API (api.anthropic.com)", "Claude Code"]
+    },
+    {
+      "name": "Cloudflare",
+      "url": "https://www.cloudflarestatus.com",
+      "provider": "atlassian",
+      "components": ["Authoritative DNS", "Recursive DNS", "DNS Updates", "DNS Firewall", "DNS Root Servers"]
+    }
+  ]
+}
