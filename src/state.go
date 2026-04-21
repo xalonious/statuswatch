@@ -8,7 +8,8 @@ import (
 )
 
 type SeenIncident struct {
-	Name string `json:"name"`
+	Name           string `json:"name"`
+	LatestUpdateID string `json:"latest_update_id"`
 }
 
 type State struct {

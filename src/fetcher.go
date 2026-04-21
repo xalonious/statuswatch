@@ -22,6 +22,7 @@ type Incident struct {
 	Status             string
 	Impact             string
 	Body               string
+	LatestUpdateID     string
 	Updated            time.Time
 	AffectedComponents []string
 }
@@ -77,6 +78,7 @@ type atlassianIncident struct {
 }
 
 type atlassianIncidentUpdate struct {
+	ID                 string                       `json:"id"`
 	Body               string                       `json:"body"`
 	UpdatedAt          string                       `json:"updated_at"`
 	AffectedComponents []atlassianAffectedComponent `json:"affected_components"`
@@ -176,12 +178,18 @@ func fetchAtlassian(svc Service) (StatusResult, error) {
 			}
 		}
 
+		var latestUpdateID string
+		if len(inc.Updates) > 0 {
+			latestUpdateID = inc.Updates[0].ID
+		}
+
 		incident := Incident{
 			ID:                 inc.ID,
 			Name:               inc.Name,
 			Status:             inc.Status,
 			Impact:             inc.Impact,
 			Body:               latestBody,
+			LatestUpdateID:     latestUpdateID,
 			Updated:            updated,
 			AffectedComponents: components,
 		}

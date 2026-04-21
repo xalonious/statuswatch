@@ -40,12 +40,21 @@ func checkAll(cfg Config) {
 		for _, inc := range result.Incidents {
 			currentIDs[inc.ID] = true
 
-			if _, alreadySeen := state.SeenIncidents[svc.Name][inc.ID]; !alreadySeen {
+			existing, alreadySeen := state.SeenIncidents[svc.Name][inc.ID]
+			if !alreadySeen {
 				log.Printf("[NEW INCIDENT] %s: %s (%s)", svc.Name, inc.Name, inc.Status)
 				if err := sendIncidentAlert(cfg.DiscordWebhookURL, result, inc); err != nil {
 					log.Printf("Error sending alert for %s: %v", svc.Name, err)
 				} else {
-					state.SeenIncidents[svc.Name][inc.ID] = SeenIncident{Name: inc.Name}
+					state.SeenIncidents[svc.Name][inc.ID] = SeenIncident{Name: inc.Name, LatestUpdateID: inc.LatestUpdateID}
+					changed = true
+				}
+			} else if inc.LatestUpdateID != "" && inc.LatestUpdateID != existing.LatestUpdateID {
+				log.Printf("[UPDATE] %s: %s (%s)", svc.Name, inc.Name, inc.Status)
+				if err := sendUpdateAlert(cfg.DiscordWebhookURL, result, inc); err != nil {
+					log.Printf("Error sending update alert for %s: %v", svc.Name, err)
+				} else {
+					state.SeenIncidents[svc.Name][inc.ID] = SeenIncident{Name: inc.Name, LatestUpdateID: inc.LatestUpdateID}
 					changed = true
 				}
 			}

@@ -100,6 +100,37 @@ func sendIncidentAlert(webhookURL string, result StatusResult, inc Incident) err
 	return sendWebhook(webhookURL, embed)
 }
 
+func sendUpdateAlert(webhookURL string, result StatusResult, inc Incident) error {
+	description := fmt.Sprintf("**%s**", inc.Name)
+	if inc.Body != "" {
+		description += "\n\n" + inc.Body
+	}
+
+	fields := []discordField{
+		{Name: "Status", Value: inc.Status, Inline: true},
+		{Name: "Service Health", Value: result.Overall, Inline: true},
+	}
+
+	if len(inc.AffectedComponents) > 0 {
+		fields = append(fields, discordField{
+			Name:   "Affects",
+			Value:  strings.Join(inc.AffectedComponents, ", "),
+			Inline: false,
+		})
+	}
+
+	embed := discordEmbed{
+		Title:       fmt.Sprintf("🔄 Update: %s", result.ServiceName),
+		Description: description,
+		Color:       impactColor(inc.Impact),
+		Fields:      fields,
+		Footer:      discordFooter{Text: "statuswatch"},
+		Timestamp:   time.Now().UTC().Format(time.RFC3339),
+	}
+
+	return sendWebhook(webhookURL, embed)
+}
+
 func sendResolutionAlert(webhookURL string, serviceName string, incidentName string) error {
 	embed := discordEmbed{
 		Title:       fmt.Sprintf("✅ Resolved: %s", serviceName),
