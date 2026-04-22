@@ -42,15 +42,15 @@ type statusIOOverall struct {
 }
 
 type statusIOIncident struct {
-	ID            string                   `json:"_id"`
-	Name          string                   `json:"name"`
-	CurrentStatus string                   `json:"current_status"`
-	LastUpdatedAt string                   `json:"last_updated_at"`
-	Updates       []statusIOIncidentUpdate `json:"incident_updates"`
+	ID       string                   `json:"_id"`
+	Name     string                   `json:"name"`
+	Messages []statusIOIncidentUpdate `json:"messages"`
 }
 
 type statusIOIncidentUpdate struct {
-	Body string `json:"details"`
+	Body     string `json:"details"`
+	State    int    `json:"state"`
+	Datetime string `json:"datetime"`
 }
 
 type atlassianResponse struct {
@@ -117,19 +117,35 @@ func fetchStatusIO(svc Service) (StatusResult, error) {
 	}
 
 	for _, inc := range resp.Result.Incidents {
-		updated, _ := time.Parse(time.RFC3339, inc.LastUpdatedAt)
+		var latestBody, latestUpdateID, status string
+		var updated time.Time
 
-		var latestBody string
-		if len(inc.Updates) > 0 {
-			latestBody = inc.Updates[0].Body
+		if len(inc.Messages) > 0 {
+			latest := inc.Messages[len(inc.Messages)-1]
+			latestBody = latest.Body
+			latestUpdateID = latest.Datetime
+			updated, _ = time.Parse(time.RFC3339, latest.Datetime)
+			switch latest.State {
+			case 100:
+				status = "Investigating"
+			case 200:
+				status = "Identified"
+			case 300:
+				status = "Monitoring"
+			case 400:
+				status = "Resolved"
+			default:
+				status = "Investigating"
+			}
 		}
 
 		result.Incidents = append(result.Incidents, Incident{
-			ID:      inc.ID,
-			Name:    inc.Name,
-			Status:  inc.CurrentStatus,
-			Body:    latestBody,
-			Updated: updated,
+			ID:             inc.ID,
+			Name:           inc.Name,
+			Status:         status,
+			Body:           latestBody,
+			LatestUpdateID: latestUpdateID,
+			Updated:        updated,
 		})
 	}
 
