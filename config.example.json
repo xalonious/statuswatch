@@ -1,6 +1,7 @@
 {
-  "webhook_url": "YOUR_WEBHOOK_HERE",
+  "webhook_url": "YOUR_DISCORD_WEBHOOK_URL_HERE",
   "poll_interval_seconds": 120,
+  "min_impact": "major",
   "services": [
     {
       "name": "Roblox",
@@ -21,7 +22,8 @@
     {
       "name": "GitHub",
       "url": "https://www.githubstatus.com",
-      "provider": "atlassian"
+      "provider": "atlassian",
+      "components": ["Git Operations", "API Requests", "Issues", "Pull Requests", "Actions"]
     },
     {
       "name": "Claude",

@@ -53,6 +53,35 @@ func impactColor(impact string) int {
 	}
 }
 
+func capitalizeFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+func impactRank(impact string) int {
+	switch strings.ToLower(impact) {
+	case "critical":
+		return 4
+	case "major":
+		return 3
+	case "minor":
+		return 2
+	case "none":
+		return 1
+	default:
+		return 2 
+	}
+}
+
+func meetsImpactThreshold(impact, minImpact string) bool {
+	if minImpact == "" {
+		return true
+	}
+	return impactRank(impact) >= impactRank(minImpact)
+}
+
 func severityColor(overall string) int {
 	lower := strings.ToLower(overall)
 	switch {
@@ -76,7 +105,7 @@ func sendIncidentAlert(webhookURL string, result StatusResult, inc Incident) err
 	}
 
 	fields := []discordField{
-		{Name: "Status", Value: inc.Status, Inline: true},
+		{Name: "Status", Value: capitalizeFirst(inc.Status), Inline: true},
 		{Name: "Service Health", Value: result.Overall, Inline: true},
 	}
 
@@ -107,7 +136,7 @@ func sendUpdateAlert(webhookURL string, result StatusResult, inc Incident) error
 	}
 
 	fields := []discordField{
-		{Name: "Status", Value: inc.Status, Inline: true},
+		{Name: "Status", Value: capitalizeFirst(inc.Status), Inline: true},
 		{Name: "Service Health", Value: result.Overall, Inline: true},
 	}
 

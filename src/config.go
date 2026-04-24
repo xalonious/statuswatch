@@ -24,6 +24,7 @@ type Service struct {
 type Config struct {
 	DiscordWebhookURL   string    `json:"webhook_url"`
 	PollIntervalSeconds int       `json:"poll_interval_seconds"`
+	MinImpact           string    `json:"min_impact,omitempty"`
 	Services            []Service `json:"services"`
 }
 

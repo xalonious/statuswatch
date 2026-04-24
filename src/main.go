@@ -40,6 +40,10 @@ func checkAll(cfg Config) {
 		for _, inc := range result.Incidents {
 			currentIDs[inc.ID] = true
 
+			if !meetsImpactThreshold(inc.Impact, cfg.MinImpact) {
+				continue
+			}
+
 			existing, alreadySeen := state.SeenIncidents[svc.Name][inc.ID]
 			if !alreadySeen {
 				log.Printf("[NEW INCIDENT] %s: %s (%s)", svc.Name, inc.Name, inc.Status)

@@ -50,6 +50,7 @@ type statusIOIncident struct {
 type statusIOIncidentUpdate struct {
 	Body     string `json:"details"`
 	State    int    `json:"state"`
+	Status   int    `json:"status"`
 	Datetime string `json:"datetime"`
 }
 
@@ -117,7 +118,7 @@ func fetchStatusIO(svc Service) (StatusResult, error) {
 	}
 
 	for _, inc := range resp.Result.Incidents {
-		var latestBody, latestUpdateID, status string
+		var latestBody, latestUpdateID, status, impact string
 		var updated time.Time
 
 		if len(inc.Messages) > 0 {
@@ -137,12 +138,25 @@ func fetchStatusIO(svc Service) (StatusResult, error) {
 			default:
 				status = "Investigating"
 			}
+			switch latest.Status {
+			case 100:
+				impact = "none"
+			case 200, 300:
+				impact = "minor"
+			case 400:
+				impact = "major"
+			case 500:
+				impact = "critical"
+			default:
+				impact = "minor"
+			}
 		}
 
 		result.Incidents = append(result.Incidents, Incident{
 			ID:             inc.ID,
 			Name:           inc.Name,
 			Status:         status,
+			Impact:         impact,
 			Body:           latestBody,
 			LatestUpdateID: latestUpdateID,
 			Updated:        updated,
