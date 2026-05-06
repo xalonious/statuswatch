@@ -71,11 +71,12 @@ type atlassianComponent struct {
 }
 
 type atlassianIncident struct {
-	ID      string                    `json:"id"`
-	Name    string                    `json:"name"`
-	Status  string                    `json:"status"`
-	Impact  string                    `json:"impact"`
-	Updates []atlassianIncidentUpdate `json:"incident_updates"`
+	ID         string                    `json:"id"`
+	Name       string                    `json:"name"`
+	Status     string                    `json:"status"`
+	Impact     string                    `json:"impact"`
+	Updates    []atlassianIncidentUpdate `json:"incident_updates"`
+	Components []atlassianComponent      `json:"components"`
 }
 
 type atlassianIncidentUpdate struct {
@@ -192,12 +193,12 @@ func fetchAtlassian(svc Service) (StatusResult, error) {
 		var updated time.Time
 		var latestBody string
 		var components []string
+		seen := make(map[string]bool)
 
 		if len(inc.Updates) > 0 {
 			updated, _ = time.Parse(time.RFC3339, inc.Updates[0].UpdatedAt)
 			latestBody = inc.Updates[0].Body
 
-			seen := make(map[string]bool)
 			for _, update := range inc.Updates {
 				for _, c := range update.AffectedComponents {
 					if !seen[c.Name] {
@@ -205,6 +206,12 @@ func fetchAtlassian(svc Service) (StatusResult, error) {
 						seen[c.Name] = true
 					}
 				}
+			}
+		}
+		for _, c := range inc.Components {
+			if !seen[c.Name] {
+				components = append(components, c.Name)
+				seen[c.Name] = true
 			}
 		}
 
@@ -237,10 +244,8 @@ func anyFilteredComponentDegraded(components []atlassianComponent, filter []stri
 		if c.Status == "operational" {
 			continue
 		}
-		for _, wanted := range filter {
-			if strings.EqualFold(c.Name, wanted) {
-				return true
-			}
+		if componentNameMatchesFilter(c.Name, filter) {
+			return true
 		}
 	}
 	return false
@@ -252,14 +257,35 @@ func incidentMatchesFilter(inc Incident, filter []string) bool {
 	}
 
 	for _, affected := range inc.AffectedComponents {
-		for _, wanted := range filter {
-			if strings.EqualFold(affected, wanted) {
-				return true
-			}
+		if componentNameMatchesFilter(affected, filter) {
+			return true
 		}
 	}
 
 	return false
+}
+
+func componentNameMatchesFilter(name string, filter []string) bool {
+	for _, wanted := range filter {
+		if componentNamesEqual(name, wanted) {
+			return true
+		}
+	}
+	return false
+}
+
+func componentNamesEqual(name, wanted string) bool {
+	name = normalizeComponentName(name)
+	wanted = normalizeComponentName(wanted)
+	if strings.EqualFold(name, wanted) {
+		return true
+	}
+
+	return strings.HasSuffix(strings.ToLower(name), " - "+strings.ToLower(wanted))
+}
+
+func normalizeComponentName(name string) string {
+	return strings.Join(strings.Fields(name), " ")
 }
 
 func httpGet(url string) ([]byte, error) {
