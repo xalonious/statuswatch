@@ -123,10 +123,10 @@ func fetchStatusIO(svc Service) (StatusResult, error) {
 		var updated time.Time
 
 		if len(inc.Messages) > 0 {
-			latest := inc.Messages[len(inc.Messages)-1]
+			latest, parsedUpdated := latestStatusIOUpdate(inc.Messages)
 			latestBody = latest.Body
 			latestUpdateID = latest.Datetime
-			updated, _ = time.Parse(time.RFC3339, latest.Datetime)
+			updated = parsedUpdated
 			switch latest.State {
 			case 100:
 				status = "Investigating"
@@ -165,6 +165,24 @@ func fetchStatusIO(svc Service) (StatusResult, error) {
 	}
 
 	return result, nil
+}
+
+func latestStatusIOUpdate(messages []statusIOIncidentUpdate) (statusIOIncidentUpdate, time.Time) {
+	latest := messages[len(messages)-1]
+	latestTime, _ := time.Parse(time.RFC3339, latest.Datetime)
+
+	for _, message := range messages[:len(messages)-1] {
+		updated, err := time.Parse(time.RFC3339, message.Datetime)
+		if err != nil {
+			continue
+		}
+		if latestTime.IsZero() || updated.After(latestTime) {
+			latest = message
+			latestTime = updated
+		}
+	}
+
+	return latest, latestTime
 }
 
 func fetchAtlassian(svc Service) (StatusResult, error) {

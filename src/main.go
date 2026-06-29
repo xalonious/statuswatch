@@ -40,11 +40,11 @@ func checkAll(cfg Config) {
 		for _, inc := range result.Incidents {
 			currentIDs[inc.ID] = true
 
-			if !meetsImpactThreshold(inc.Impact, cfg.MinImpact) {
+			existing, alreadySeen := state.SeenIncidents[svc.Name][inc.ID]
+			if !shouldProcessIncident(inc, alreadySeen, cfg.MinImpact) {
 				continue
 			}
 
-			existing, alreadySeen := state.SeenIncidents[svc.Name][inc.ID]
 			if !alreadySeen {
 				log.Printf("[NEW INCIDENT] %s: %s (%s)", svc.Name, inc.Name, inc.Status)
 				if err := sendIncidentAlert(cfg.DiscordWebhookURL, result, inc); err != nil {
@@ -105,4 +105,8 @@ func checkAll(cfg Config) {
 	}
 
 	log.Printf("Check done in %s", time.Since(start).Round(time.Millisecond))
+}
+
+func shouldProcessIncident(inc Incident, alreadySeen bool, minImpact string) bool {
+	return alreadySeen || meetsImpactThreshold(inc.Impact, minImpact)
 }
