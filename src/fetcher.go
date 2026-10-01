@@ -90,19 +90,19 @@ type atlassianAffectedComponent struct {
 	Name string `json:"name"`
 }
 
-func fetchStatus(svc Service) (StatusResult, error) {
+func fetchStatus(svc Service, client *http.Client) (StatusResult, error) {
 	switch svc.Provider {
 	case ProviderStatusIO:
-		return fetchStatusIO(svc)
+		return fetchStatusIO(svc, client)
 	case ProviderAtlassian:
-		return fetchAtlassian(svc)
+		return fetchAtlassian(svc, client)
 	default:
 		return StatusResult{}, fmt.Errorf("unknown provider: %s", svc.Provider)
 	}
 }
 
-func fetchStatusIO(svc Service) (StatusResult, error) {
-	body, err := httpGet(svc.URL)
+func fetchStatusIO(svc Service, client *http.Client) (StatusResult, error) {
+	body, err := httpGet(svc.URL, client)
 	if err != nil {
 		return StatusResult{}, fmt.Errorf("fetching %s: %w", svc.Name, err)
 	}
@@ -185,8 +185,8 @@ func latestStatusIOUpdate(messages []statusIOIncidentUpdate) (statusIOIncidentUp
 	return latest, latestTime
 }
 
-func fetchAtlassian(svc Service) (StatusResult, error) {
-	body, err := httpGet(svc.URL + "/api/v2/summary.json")
+func fetchAtlassian(svc Service, client *http.Client) (StatusResult, error) {
+	body, err := httpGet(svc.URL+"/api/v2/summary.json", client)
 	if err != nil {
 		return StatusResult{}, fmt.Errorf("fetching %s: %w", svc.Name, err)
 	}
@@ -306,9 +306,20 @@ func normalizeComponentName(name string) string {
 	return strings.Join(strings.Fields(name), " ")
 }
 
-func httpGet(url string) ([]byte, error) {
-	client := &http.Client{Timeout: 10 * time.Second}
+func newPollingHTTPClient(pollInterval time.Duration) *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = http.ProxyFromEnvironment
+	transport.IdleConnTimeout = pollInterval + 30*time.Second
+	transport.MaxIdleConns = 100
+	transport.MaxIdleConnsPerHost = 10
 
+	return &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: transport,
+	}
+}
+
+func httpGet(url string, client *http.Client) ([]byte, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
@@ -316,6 +327,7 @@ func httpGet(url string) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return nil, fmt.Errorf("unexpected HTTP status: %d", resp.StatusCode)
 	}
 

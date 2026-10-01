@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"time"
 )
@@ -9,24 +10,27 @@ import (
 func main() {
 	log.SetOutput(os.Stdout)
 	cfg := loadConfig()
+	pollInterval := time.Duration(cfg.PollIntervalSeconds) * time.Second
+	client := newPollingHTTPClient(pollInterval)
+	defer client.CloseIdleConnections()
 
 	log.Printf("statuswatch started, polling every %d seconds", cfg.PollIntervalSeconds)
 
-	checkAll(cfg)
+	checkAll(cfg, client)
 
-	ticker := time.NewTicker(time.Duration(cfg.PollIntervalSeconds) * time.Second)
+	ticker := time.NewTicker(pollInterval)
 	for range ticker.C {
-		checkAll(cfg)
+		checkAll(cfg, client)
 	}
 }
 
-func checkAll(cfg Config) {
+func checkAll(cfg Config, client *http.Client) {
 	start := time.Now()
 	state := loadState()
 	changed := false
 
 	for _, svc := range cfg.Services {
-		result, err := fetchStatus(svc)
+		result, err := fetchStatus(svc, client)
 		if err != nil {
 			log.Printf("Error checking %s: %v", svc.Name, err)
 			continue
